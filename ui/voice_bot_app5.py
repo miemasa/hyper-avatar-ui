@@ -19,7 +19,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 
 # ---------------------- 基本設定 --------------------------------
-st.set_page_config(page_title="ハイパーアバター", page_icon="🎤", layout="centered")
+st.set_page_config(page_title="HYPER AVATAR", page_icon="🎤", layout="centered")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
@@ -118,19 +118,24 @@ model_name  = st.sidebar.selectbox("🧑‍💼 誰と話したいですか？",
 lang_option = st.sidebar.selectbox("🌐 言語 (auto)", ["auto", "ja", "en", "ko", "zh"])
 st.sidebar.image(AVATAR_IMG[model_name], width=140)
 
-st.markdown("<h1 style='text-align:center'>🎤 ハイパーアバター🧠</h1>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <h1 style='text-align:center; font-family:"Orbitron", sans-serif; color:#03a9f4; text-shadow:0 0 10px #039be5;'>🚀 HYPER AVATAR 🚀</h1>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.markdown(
     """
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <style>
       html, body, [class*='st-'] {font-family: 'Noto Sans JP', sans-serif;}
-      .stApp {background-color: #ffe6f2;}
+      .stApp {background: linear-gradient(135deg, #141E30 0%, #243B55 100%); color: #fff;}
       .stChatInput {position: fixed; bottom: 1rem; width: 100%;}
       div[data-testid="stRadio"] > label {display: none;}
       div[data-testid="stRadio"] div[role="radiogroup"] {display: flex; gap: 0.5rem; justify-content: center;}
-      div[data-testid="stRadio"] [data-baseweb="radio"] {background: #fff; border-radius: 20px; padding: 0.2rem 0.8rem; border: 2px solid #f48fb1; color: #f48fb1; font-weight: bold;}
-      div[data-testid="stRadio"] [data-baseweb="radio"] input:checked + div {background: #f48fb1; color: #fff;}
+      div[data-testid="stRadio"] [data-baseweb="radio"] {background: #1e1e1e; border-radius: 20px; padding: 0.2rem 0.8rem; border: 2px solid #03a9f4; color: #03a9f4; font-weight: bold;}
+      div[data-testid="stRadio"] [data-baseweb="radio"] input:checked + div {background: #03a9f4; color: #fff;}
     </style>
     """,
     unsafe_allow_html=True,
