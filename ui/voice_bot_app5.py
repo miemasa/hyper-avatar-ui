@@ -114,8 +114,12 @@ auth_headers = {"X-API-KEY": SEEDVC_API_KEY} if SEEDVC_API_KEY else {}
 
 # ---------------------- UI --------------------------------------
 st.sidebar.header("設定")
-model_name  = st.sidebar.selectbox("🧑‍💼 誰と話したいですか？", list(GIF_TALK.keys()))
-lang_option = st.sidebar.selectbox("🌐 言語 (auto)", ["auto", "ja", "en", "ko", "zh"])
+model_name  = st.sidebar.selectbox(
+    "🧑‍💼 誰と話したいですか？", list(GIF_TALK.keys()), key="model_name"
+)
+lang_option = st.sidebar.selectbox(
+    "🌐 言語 (auto)", ["auto", "ja", "en", "ko", "zh"], key="lang_option"
+)
 st.sidebar.image(AVATAR_IMG[model_name], width=140)
 
 st.markdown(
@@ -148,6 +152,12 @@ for k in ("processing", "idle_ready", "messages", "input_mode"):
         st.session_state.setdefault(k, "text")
     else:
         st.session_state.setdefault(k, False)
+
+if "prev_model_name" not in st.session_state:
+    st.session_state.prev_model_name = model_name
+elif st.session_state.prev_model_name != model_name:
+    st.session_state.messages = []
+    st.session_state.prev_model_name = model_name
 
 mode = st.radio(
     "入力モード",
@@ -208,11 +218,14 @@ if user_text and not st.session_state.processing:
 
     with st.spinner("💭 考え中…"):
         t0 = perf_counter()
-        reply = openai.OpenAI(api_key=OPENAI_API_KEY).chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "system", "content": system_msg},
-                      {"role": "user", "content": user_text}],
-        ).choices[0].message.content
+        openai_messages = [{"role": "system", "content": system_msg}]
+        openai_messages.extend(st.session_state.messages)
+        reply = (
+            openai.OpenAI(api_key=OPENAI_API_KEY)
+            .chat.completions.create(model=MODEL_NAME, messages=openai_messages)
+            .choices[0]
+            .message.content
+        )
         t1 = perf_counter()
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
