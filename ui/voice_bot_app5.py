@@ -27,6 +27,14 @@ os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 # ▼ 追加：Seed-VC 用 API キー（環境変数から取得）
 SEEDVC_API_KEY = os.getenv("SEEDVC_API_KEY", "")       # 必須なら空チェックを
 
+# ――― どこか最上部（import の直後など）に 1 回書く -------------
+def _rerun() -> None:
+    """Streamlit 1.45 ～ 1.48 と 1.49 以降の差異を吸収するラッパー"""
+    if hasattr(st, "rerun"):          # 1.49+
+        st.rerun()
+    else:                             # ≤1.48
+        st.experimental_rerun()
+
 # ---------------------- ログイン認証 ------------------------------
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -38,7 +46,7 @@ if not st.session_state.authenticated:
     if st.button("Login"):
         if user_id == "hyper" and password == "hyper":
             st.session_state.authenticated = True
-            st.experimental_rerun()
+            _rerun()
         else:
             st.error("ID またはパスワードが違います")
     st.stop()
