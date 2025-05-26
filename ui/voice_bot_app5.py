@@ -85,6 +85,13 @@ GIF_TALK   = {m: f"{m.split('_')[0]}_talk.gif"   for m in PROMPT_MAP["ja"] if m 
 IMG_IDLE   = {m: f"{m.split('_')[0]}_idle.png"   for m in GIF_TALK}
 AVATAR_IMG = {m: f"{m.split('_')[0]}_jiburi.png" for m in GIF_TALK}
 
+# UI 表示用のモデル名ラベル
+DISPLAY_LABELS = {
+    "sakaguchi_model_v1": "情報科学高校の坂口さん",
+    "aoki_model_v1": "ハイパー研の青木所長",
+    "anton_model_v1": "ライズのアントン",
+}
+
 RAW_WAV    = "input_tmp.wav"
 MODEL_NAME = "gpt-4o"
 API_HOST   = "http://127.0.0.1:8000"   # FastAPI サーバ
@@ -115,7 +122,10 @@ auth_headers = {"X-API-KEY": SEEDVC_API_KEY} if SEEDVC_API_KEY else {}
 # ---------------------- UI --------------------------------------
 st.sidebar.header("設定")
 model_name  = st.sidebar.selectbox(
-    "🧑‍💼 誰と話したいですか？", list(GIF_TALK.keys()), key="model_name"
+    "🧑‍💼 誰と話したいですか？",
+    list(GIF_TALK.keys()),
+    format_func=lambda x: DISPLAY_LABELS.get(x, x),
+    key="model_name",
 )
 lang_option = st.sidebar.selectbox(
     "🌐 言語 (auto)", ["auto", "ja", "en", "ko", "zh"], key="lang_option"
