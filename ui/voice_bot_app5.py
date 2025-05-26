@@ -106,7 +106,7 @@ auth_headers = {"X-API-KEY": SEEDVC_API_KEY} if SEEDVC_API_KEY else {}
 
 # ---------------------- UI --------------------------------------
 st.sidebar.header("設定")
-model_name  = st.sidebar.selectbox("🧑‍💼 声モデル", list(GIF_TALK.keys()))
+model_name  = st.sidebar.selectbox("🧑‍💼 誰と話したいですか？", list(GIF_TALK.keys()))
 lang_option = st.sidebar.selectbox("🌐 言語 (auto)", ["auto", "ja", "en", "ko", "zh"])
 st.sidebar.image(AVATAR_IMG[model_name], width=140)
 
