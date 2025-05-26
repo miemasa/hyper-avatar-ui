@@ -11,3 +11,15 @@ checkpoints/
 *.onnx
 *.log
 hyponet_db_*.tar.zst
+
+# local RAG assets
+docs2/
+hyponet_db2/
+
+
+# --- local RAG assets ---
+docs2/
+hyponet_db2/
+# Vim swap
+*.swp
+
