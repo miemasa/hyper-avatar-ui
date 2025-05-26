@@ -52,20 +52,29 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ---------------------- RAG ベクターストア -----------------------
-@st.cache_resource(show_spinner="📚 知識ベースをロード中…")
-def load_vectorstore():
-    return FAISS.load_local(
-        "hyponet_db",
-        OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY),
-        allow_dangerous_deserialization=True,
-    )
+@st.cache_resource
+def load_vectorstore(path: str):
+    """Load FAISS vector store with a visible spinner and cache."""
+    with st.spinner(f"📚 {path} ロード中…"):
+        return FAISS.load_local(
+            path,
+            OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY),
+            allow_dangerous_deserialization=True,
+        )
 
-VSTORE = load_vectorstore()
+VSTORE_PATH = {
+    "aoki_model_v1": "hyponet_db",
+    "sakaguchi_model_v1": "hyponet_db2",
+}
+
+def get_vectorstore(model_name: str) -> FAISS:
+    path = VSTORE_PATH.get(model_name, "hyponet_db")
+    return load_vectorstore(path)
 
 # ---------------------- キャラ設定 -------------------------------
 PROMPT_MAP = {
     "ja": {
-        "sakaguchi_model_v1": "あなたは22歳のハイパーネットワーク社会研究所の職員 坂口萌々子として300文字以内で答えてください。",
+        "sakaguchi_model_v1": "あなたは18歳の情報科学高校の生徒 坂口萌々子として300文字以内で答えてください。",
         "aoki_model_v1":      "あなたは62歳のハイパーネットワーク社会研究所の所長 青木栄二として大分弁で300文字以内。",
         "anton_model_v1":     "あなたはRIIZEの21歳メンバー アントンとして400文字以内。",
         "_default":           "音声入力なので校正したうえで回答してください。",
@@ -87,7 +96,8 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
         or PROMPT_MAP.get(lang, {}).get("_default")
         or PROMPT_MAP["ja"]["_default"]
     )
-    docs    = VSTORE.max_marginal_relevance_search(user_q, k=8, lambda_mult=0.5)
+    vect    = get_vectorstore(model_name)
+    docs    = vect.max_marginal_relevance_search(user_q, k=8, lambda_mult=0.5)
     context = "\n\n".join(d.page_content for d in docs)
     return f"{base}\n\nハイパーネットワーク社会研究所の職員や所長は以下の参考情報を《》で引用しながら答えてください。\n\n参考情報:\n{context}"
 

@@ -42,7 +42,20 @@ def convert_voice(self, source, target, diffusion_steps=10, length_adjust=1.0,
 ...
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "...")
 ...
-VSTORE = load_vectorstore()
+ VSTORE_PATH = {"aoki_model_v1": "hyponet_db", "sakaguchi_model_v1": "hyponet_db2"}
+
+ @st.cache_resource
+ def load_vectorstore(path: str):
+     with st.spinner(f"📚 {path} ロード中…"):
+         return FAISS.load_local(
+             path,
+             OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY),
+             allow_dangerous_deserialization=True,
+         )
+
+ def get_vectorstore(model_name: str) -> FAISS:
+     path = VSTORE_PATH.get(model_name, "hyponet_db")
+     return load_vectorstore(path)
 
 同じファイルの後半では、アプリはオーディオを Seed-VC API に投稿し、変換された音声を再生します。
 
@@ -87,16 +100,27 @@ langchain-openai
 faiss-cpu
 pypdf>=3.9
 
-補助スクリプトにはmk-faiss.py、docs/PDF を FAISS ベクトル ストアにインデックス付けして、検索強化型生成を行う が含まれます。
+補助スクリプトにはmk-faiss.py と mk-faiss2.py があり、前者は docs/ の PDF を
+hyponet_db に、後者は docs2/ の PDF を hyponet_db2 にインデックスして RAG 用
+ベクトルストアを生成します。
 
 docs = []
 for pdf_path in glob.glob("docs/*.pdf"):
     loader = PyPDFLoader(pdf_path)
-    docs.extend(loader.load())           # 1 ページ＝1 Document
+    docs.extend(loader.load())
 ...
 vect = FAISS.from_documents(chunks, embed)
 vect.save_local("hyponet_db")
 print(f"✅ {len(chunks)} chunks indexed → hyponet_db/")
+
+docs = []
+for pdf_path in glob.glob("docs2/*.pdf"):
+    loader = PyPDFLoader(pdf_path)
+    docs.extend(loader.load())
+...
+vect = FAISS.from_documents(chunks, embed)
+vect.save_local("hyponet_db2")
+print(f"✅ {len(chunks)} chunks indexed → hyponet_db2/")
 
 全体として、リポジトリは次のものを提供します。
 
