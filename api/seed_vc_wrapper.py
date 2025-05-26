@@ -178,12 +178,12 @@ class SeedVCWrapper:
             sr: Sample rate
             
         Returns:
-            Tuple of (processed_frames, previous_chunk, should_break, mp3_bytes, full_audio)
+            Tuple of (processed_frames, previous_chunk, should_break, chunk_bytes, full_audio)
             where should_break indicates if processing should stop
-            mp3_bytes is the MP3 bytes if streaming, None otherwise
+            chunk_bytes is the audio bytes if streaming, None otherwise
             full_audio is the full audio if this is the last chunk, None otherwise
         """
-        mp3_bytes = None
+        chunk_bytes = None
         full_audio = None
         
         if processed_frames == 0:
@@ -193,15 +193,15 @@ class SeedVCWrapper:
                 
                 if stream_output:
                     output_wave_int16 = (output_wave * 32768.0).astype(np.int16)
-                    mp3_bytes = AudioSegment(
+                    chunk_bytes = AudioSegment(
                         output_wave_int16.tobytes(), frame_rate=sr,
                         sample_width=output_wave_int16.dtype.itemsize, channels=1
-                    ).export(format="mp3", bitrate=self.bitrate).read()
+                    ).export(format="wav").read()
                     full_audio = (sr, np.concatenate(generated_wave_chunks))
                 else:
                     return processed_frames, previous_chunk, True, None, np.concatenate(generated_wave_chunks)
                 
-                return processed_frames, previous_chunk, True, mp3_bytes, full_audio
+                return processed_frames, previous_chunk, True, chunk_bytes, full_audio
             
             output_wave = vc_wave[0, :-overlap_wave_len].cpu().numpy()
             generated_wave_chunks.append(output_wave)
@@ -210,10 +210,10 @@ class SeedVCWrapper:
             
             if stream_output:
                 output_wave_int16 = (output_wave * 32768.0).astype(np.int16)
-                mp3_bytes = AudioSegment(
+                chunk_bytes = AudioSegment(
                     output_wave_int16.tobytes(), frame_rate=sr,
                     sample_width=output_wave_int16.dtype.itemsize, channels=1
-                ).export(format="mp3", bitrate=self.bitrate).read()
+                ).export(format="wav").read()
             
         elif is_last_chunk:
             output_wave = self.crossfade(previous_chunk.cpu().numpy(), vc_wave[0].cpu().numpy(), overlap_wave_len)
@@ -222,15 +222,15 @@ class SeedVCWrapper:
             
             if stream_output:
                 output_wave_int16 = (output_wave * 32768.0).astype(np.int16)
-                mp3_bytes = AudioSegment(
+                chunk_bytes = AudioSegment(
                     output_wave_int16.tobytes(), frame_rate=sr,
                     sample_width=output_wave_int16.dtype.itemsize, channels=1
-                ).export(format="mp3", bitrate=self.bitrate).read()
+                ).export(format="wav").read()
                 full_audio = (sr, np.concatenate(generated_wave_chunks))
             else:
                 return processed_frames, previous_chunk, True, None, np.concatenate(generated_wave_chunks)
             
-            return processed_frames, previous_chunk, True, mp3_bytes, full_audio
+            return processed_frames, previous_chunk, True, chunk_bytes, full_audio
             
         else:
             output_wave = self.crossfade(previous_chunk.cpu().numpy(), vc_wave[0, :-overlap_wave_len].cpu().numpy(), overlap_wave_len)
@@ -240,12 +240,12 @@ class SeedVCWrapper:
             
             if stream_output:
                 output_wave_int16 = (output_wave * 32768.0).astype(np.int16)
-                mp3_bytes = AudioSegment(
+                chunk_bytes = AudioSegment(
                     output_wave_int16.tobytes(), frame_rate=sr,
                     sample_width=output_wave_int16.dtype.itemsize, channels=1
-                ).export(format="mp3", bitrate=self.bitrate).read()
+                ).export(format="wav").read()
                 
-        return processed_frames, previous_chunk, False, mp3_bytes, full_audio
+        return processed_frames, previous_chunk, False, chunk_bytes, full_audio
 
     def _process_whisper_features(self, audio_16k, is_source=True):
         """Process audio through Whisper model to extract features."""
@@ -331,7 +331,7 @@ class SeedVCWrapper:
             stream_output: Whether to stream the output (default: True)
             
         Returns:
-            If stream_output is True, yields (mp3_bytes, full_audio) tuples
+            If stream_output is True, yields (chunk_bytes, full_audio) tuples
             If stream_output is False, returns the full audio as a numpy array
         """
         # Select appropriate models based on F0 condition
@@ -442,13 +442,13 @@ class SeedVCWrapper:
             
             vc_wave = bigvgan_fn(vc_target.float())[0]
             
-            processed_frames, previous_chunk, should_break, mp3_bytes, full_audio = self._stream_wave_chunks(
-                vc_wave, processed_frames, vc_target, overlap_wave_len, 
+            processed_frames, previous_chunk, should_break, chunk_bytes, full_audio = self._stream_wave_chunks(
+                vc_wave, processed_frames, vc_target, overlap_wave_len,
                 generated_wave_chunks, previous_chunk, is_last_chunk, stream_output, sr
             )
-            
-            if stream_output and mp3_bytes is not None:
-                yield mp3_bytes, full_audio
+
+            if stream_output and chunk_bytes is not None:
+                yield chunk_bytes, full_audio
                 
             if should_break:
                 if not stream_output:
