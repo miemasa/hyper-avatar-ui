@@ -96,10 +96,18 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
         or PROMPT_MAP.get(lang, {}).get("_default")
         or PROMPT_MAP["ja"]["_default"]
     )
-    vect    = get_vectorstore(model_name)
-    docs    = vect.max_marginal_relevance_search(user_q, k=8, lambda_mult=0.5)
+    vect = get_vectorstore(model_name)
+    docs = vect.max_marginal_relevance_search(user_q, k=8, lambda_mult=0.5)
     context = "\n\n".join(d.page_content for d in docs)
-    return f"{base}\n\nハイパーネットワーク社会研究所の職員や所長は以下の参考情報を《》で引用しながら答えてください。\n\n参考情報:\n{context}"
+
+    # ★ 研究所の固定文は削除し、プレーンな参照指示だけにする
+    return f"""{base}
+
+以下の参考情報を《》で引用しながら答えてください。
+
+参考情報:
+{context}"""
+
 
 # ◇ API キーヘッダをまとめて用意
 auth_headers = {"X-API-KEY": SEEDVC_API_KEY} if SEEDVC_API_KEY else {}
