@@ -1,1 +1,1 @@
-# hyper-avatar
+# hyper-avatar-ui
