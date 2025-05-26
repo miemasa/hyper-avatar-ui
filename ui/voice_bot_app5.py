@@ -27,6 +27,22 @@ os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 # ▼ 追加：Seed-VC 用 API キー（環境変数から取得）
 SEEDVC_API_KEY = os.getenv("SEEDVC_API_KEY", "")       # 必須なら空チェックを
 
+# ---------------------- ログイン認証 ------------------------------
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.title("ログイン")
+    user_id = st.text_input("ID")
+    password = st.text_input("Password", type="password")
+    if st.button("Login"):
+        if user_id == "hyper" and password == "hyper":
+            st.session_state.authenticated = True
+            st.experimental_rerun()
+        else:
+            st.error("ID またはパスワードが違います")
+    st.stop()
+
 # ---------------------- RAG ベクターストア -----------------------
 @st.cache_resource(show_spinner="📚 知識ベースをロード中…")
 def load_vectorstore():
