@@ -10,3 +10,4 @@ checkpoints/
 *.pth
 *.onnx
 *.log
+hyponet_db_*.tar.zst
