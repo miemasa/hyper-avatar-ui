@@ -1,3 +1,18 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:54ae665797fbb20ed3fc9b856be688f6b8a903b0bed8ff7edabff81dd9cdcd33
-size 510
+# Adapted from https://github.com/jik876/hifi-gan under the MIT license.
+#   LICENSE is in incl_licenses directory.
+
+import os
+import shutil
+
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
+def build_env(config, config_name, path):
+    t_path = os.path.join(path, config_name)
+    if config != t_path:
+        os.makedirs(path, exist_ok=True)
+        shutil.copyfile(config, os.path.join(path, config_name))

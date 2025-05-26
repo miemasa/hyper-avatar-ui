@@ -1,3 +1,6 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2e3138e1052e377ba2e51ea59c7d5d255a519559001757af21dbec4cb9c22471
-size 200
+# Adapted from https://github.com/junjun3518/alias-free-torch under the Apache License 2.0
+#   LICENSE is in incl_licenses directory.
+
+from .filter import *
+from .resample import *
+from .act import *
