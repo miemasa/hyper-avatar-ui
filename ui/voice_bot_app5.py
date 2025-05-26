@@ -275,6 +275,10 @@ if user_text and not st.session_state.processing:
 
     avatar_slot.image(GIF_TALK[model_name], use_container_width=True)
     audio_slot.audio(io.BytesIO(wav_bytes), format="audio/wav", autoplay=True)
+    st.components.v1.html(
+        "<script>window.scrollTo({top:0,behavior:'smooth'});</script>",
+        height=0,
+    )
 
     def mark_idle():
         time.sleep(duration)
