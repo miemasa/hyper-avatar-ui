@@ -130,7 +130,7 @@ if not st.session_state.processing:
     if st.session_state.input_mode == "text":
         user_text = st.chat_input("メッセージを入力")
     else:
-        audio_data = st.audio_input("🎤 ブラウザ録音 (押して話す → Stop)")
+        audio_data = st.audio_input("🎤 ①マイクボタンで録音開始　②もう一度おして録音終了)")
         if audio_data:
             st.session_state.processing = True
             t0 = perf_counter()
@@ -159,7 +159,7 @@ if user_text and not st.session_state.processing:
     target_lang = lang_option if lang_option != "auto" else "ja"
     system_msg  = build_system_prompt(model_name, target_lang, user_text)
 
-    with st.spinner("💭 アイドルが考え中…"):
+    with st.spinner("💭 考え中…"):
         t0 = perf_counter()
         reply = openai.OpenAI(api_key=OPENAI_API_KEY).chat.completions.create(
             model=MODEL_NAME,
@@ -211,9 +211,9 @@ if user_text and not st.session_state.processing:
         st.session_state.idle_ready = True
     threading.Thread(target=mark_idle, daemon=True).start()
 
-    log_area.info(
-        f"⏱️ 処理時間 (秒): {{'LLM': round(t1-t0,3), 'TTS': round(t2-t1,3), 'VC': round(t3-t2,3), 'total': round(t3-t0,3)}}"
-    )
+#    log_area.info(
+#        f"⏱️ 処理時間 (秒): {{'LLM': round(t1-t0,3), 'TTS': round(t2-t1,3), 'VC': round(t3-t2,3), 'total': round(t3-t0,3)}}"
+#    )
 
     st.session_state.processing = False
 
