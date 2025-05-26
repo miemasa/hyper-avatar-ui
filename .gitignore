@@ -1,0 +1,12 @@
+hyponet_db/
+*.wav
+send.zip
+assets/*.gif
+# --- Large assets / models ---
+assets/
+checkpoints/
+*.wav
+*.mp3
+*.pth
+*.onnx
+*.log

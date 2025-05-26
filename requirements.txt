@@ -1,0 +1,8 @@
+streamlit==1.45.1
+edge-tts>=6.1,<7
+openai>=1.30
+requests>=2.31
+langchain-community
+langchain-openai
+faiss-cpu
+pypdf>=3.9

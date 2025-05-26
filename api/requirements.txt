@@ -1,0 +1,7 @@
+faster-whisper>=0.10.1     # Whisper
+descript-audiotools==0.7.2    # audiotools
+torch>=2.2
+transformers>=4.39
+soundfile
+numpy
+# …Seed-VC に同梱されている requirements から抜粋して必要分を書く

@@ -1,0 +1,19 @@
+name: voice-ui
+channels:
+  - conda-forge        # conda-forge 優先
+dependencies:
+  # ── conda パッケージ ──────────────────────
+  - python=3.10
+  - streamlit=1.45
+  - openai>=1.30        # *conda-forge にあるので OK*
+  - langchain-community>=0.3
+  - langchain-openai>=0.3
+  - edge-tts>=6.1,<7
+  - faiss-cpu
+  - pypdf
+  - ffmpeg
+
+  # ── conda で見つからない場合に備えて ──
+  - pip:
+    - edge-tts~=6.1     # PyPI 版で上書きしたい時はここに置く
+
