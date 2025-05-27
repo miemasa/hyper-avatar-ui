@@ -17,15 +17,11 @@ import requests
 import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
+from config import OPENAI_API_KEY, SEEDVC_API_KEY, API_HOST
 
 # ---------------------- 基本設定 --------------------------------
 st.set_page_config(page_title="HYPER AVATAR", page_icon="🎤", layout="centered")
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
-
-# ▼ 追加：Seed-VC 用 API キー（環境変数から取得）
-SEEDVC_API_KEY = os.getenv("SEEDVC_API_KEY", "")       # 必須なら空チェックを
 
 # ――― どこか最上部（import の直後など）に 1 回書く -------------
 def _rerun() -> None:
@@ -94,7 +90,6 @@ DISPLAY_LABELS = {
 
 RAW_WAV    = "input_tmp.wav"
 MODEL_NAME = "gpt-4o"
-API_HOST   = "http://127.0.0.1:8000"   # FastAPI サーバ
 
 # ---------------------- ヘルパー --------------------------------
 def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
