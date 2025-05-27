@@ -16,4 +16,5 @@ dependencies:
   # ── conda で見つからない場合に備えて ──
   - pip:
     - edge-tts~=6.1     # PyPI 版で上書きしたい時はここに置く
+    - python-dotenv>=1
 

@@ -2,19 +2,20 @@
 # ===============================================================
 #  Seed-VC + Faster-Whisper FastAPI server  (API-KEY / resample fix)
 # ===============================================================
-from fastapi import FastAPI, UploadFile, Form, Header, HTTPException, Response
+from fastapi import FastAPI, UploadFile, Form, Header, HTTPException
+from fastapi.responses import Response, StreamingResponse
 from pathlib import Path
-import tempfile, io, os, sys
+import tempfile, io, os, sys, struct
 import numpy as np, soundfile as sf, librosa, torch
 
 from seed_vc_wrapper import SeedVCWrapper
 from faster_whisper   import WhisperModel
+from config import SEEDVC_API_KEY
 
 # ─────────── 設定 ──────────────────────────────────────────
-API_KEY_ENV = "SEEDVC_API_KEY"               # 環境変数名
-API_KEY     = (os.getenv(API_KEY_ENV) or "").strip()
+API_KEY = (SEEDVC_API_KEY or "").strip()
 if not API_KEY:
-    print(f"[WARN] {API_KEY_ENV} が未設定です。認証せずに受け付けます。",
+    print("[WARN] SEEDVC_API_KEY が未設定です。認証せずに受け付けます。",
           file=sys.stderr)
 
 app    = FastAPI()
@@ -28,6 +29,21 @@ MODEL2REF = {
     "aoki_model_v1":      "ref/ref_aoki.wav",
     "anton_model_v1":     "ref/ref_anton.wav",
 }
+
+# Streamable WAV header with unspecified length
+def _wav_header(sample_rate: int, bits: int = 16, channels: int = 1) -> bytes:
+    byte_rate   = sample_rate * channels * bits // 8
+    block_align = channels * bits // 8
+    data_size   = 0xFFFFFFFF
+    return b"".join([
+        b"RIFF",
+        struct.pack("<I", data_size + 36),
+        b"WAVE",
+        b"fmt ",
+        struct.pack("<IHHIIHH", 16, 1, channels, sample_rate, byte_rate, block_align, bits),
+        b"data",
+        struct.pack("<I", data_size),
+    ])
 
 # ─────────── 共通：API-KEY チェック ─────────────────────
 def _check_key(x_api_key: str | None):
@@ -60,49 +76,35 @@ async def convert(
     )
 
     sr_target = 24_000
-    pcm_list  = []
 
-    for i, chunk in enumerate(gen, 1):
-        raw = chunk[0]
+    def iter_wav():
+        yield _wav_header(sr_target)
+        for i, chunk in enumerate(gen, 1):
+            raw = chunk[0]
 
-        # --- A. Tensor で来た場合 -----------------------------------
-        if torch.is_tensor(raw):                         # Tensor [1, N]
-            wav = raw.squeeze(0).cpu().numpy()
-
-        # --- B. bytes (= 完全な WAV) で来た場合 ----------------------
-        elif isinstance(raw, (bytes, bytearray)):
-            try:
-                wav, sr_in = sf.read(io.BytesIO(raw), dtype="float32")
-                if wav.ndim == 2:                        # stereo→mono
-                    wav = wav.mean(axis=1)
-
-                if sr_in != sr_target:                   # リサンプル
-                    # librosa 0.9 と 0.10 で API が微妙に異なるので両対応
-                    try:  # 0.10 以降 (キーワード専用)
-                        wav = librosa.resample(wav,
-                                               orig_sr=sr_in,
-                                               target_sr=sr_target)
-                    except TypeError:  # 0.9 以前 (位置引数可)
-                        wav = librosa.resample(wav, sr_in, sr_target)
-
-            except Exception as e:
-                print(f"[{i:02d}] decode err: {e}", file=sys.stderr)
+            if torch.is_tensor(raw):
+                wav = raw.squeeze(0).cpu().numpy()
+            elif isinstance(raw, (bytes, bytearray)):
+                try:
+                    wav, sr_in = sf.read(io.BytesIO(raw), dtype="float32")
+                    if wav.ndim == 2:
+                        wav = wav.mean(axis=1)
+                    if sr_in != sr_target:
+                        try:
+                            wav = librosa.resample(wav, orig_sr=sr_in, target_sr=sr_target)
+                        except TypeError:
+                            wav = librosa.resample(wav, sr_in, sr_target)
+                except Exception as e:
+                    print(f"[{i:02d}] decode err: {e}", file=sys.stderr)
+                    continue
+            else:
+                print(f"[{i:02d}] skip {type(raw)}", file=sys.stderr)
                 continue
 
-        # --- C. それ以外の型はスキップ ------------------------------
-        else:
-            print(f"[{i:02d}] skip {type(raw)}", file=sys.stderr)
-            continue
+            pcm_bytes = (wav * 32768.0).astype("<i2").tobytes()
+            yield pcm_bytes
 
-        pcm_list.append(wav)
-
-    if not pcm_list:
-        raise HTTPException(500, "VC 変換に失敗（波形が得られません）")
-
-    pcm = np.concatenate(pcm_list)
-    buf = io.BytesIO()
-    sf.write(buf, pcm, sr_target, format="WAV", subtype="PCM_16")
-    return Response(buf.getvalue(), media_type="audio/wav")
+    return StreamingResponse(iter_wav(), media_type="audio/wav")
 
 # =========================== ASR API ===========================
 @app.post("/transcribe")

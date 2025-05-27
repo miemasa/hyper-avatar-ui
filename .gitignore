@@ -23,3 +23,4 @@ hyponet_db2/
 # Vim swap
 *.swp
 
+.env
