@@ -5,8 +5,7 @@
 # hyper-avatar-ui
 主な機能はapi/、Seed-VC音声変換コードをバンドルしたフォルダにあります。READMEには、プロジェクトの目標とインストール手順が記載されています。
 
-Currently released model supports *zero-shot voice conversion* ...
-The Streamlit chat UI now features an image upload button next to the text input. On mobile browsers you can take a photo or select one from your gallery and send it along with your message to GPT-4o.  
+Currently released model supports *zero-shot voice conversion* ...  
 ## Installation📥
 Suggested python 3.10 on Windows, Mac M Series (Apple Silicon) or Linux.
 Windows and Linux:
