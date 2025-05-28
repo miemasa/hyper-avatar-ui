@@ -7,7 +7,16 @@
 
 from __future__ import annotations
 
-import asyncio, contextlib, io, os, subprocess, tempfile, threading, time, wave
+import asyncio
+import base64
+import contextlib
+import io
+import os
+import subprocess
+import tempfile
+import threading
+import time
+import wave
 from pathlib import Path
 from time import perf_counter
 
@@ -141,6 +150,11 @@ st.markdown(
       html, body, [class*='st-'] {font-family: 'Noto Sans JP', sans-serif;}
       .stApp {background: linear-gradient(135deg, #141E30 0%, #243B55 100%); color: #fff;}
       .stChatInput {position: fixed; bottom: 1rem; width: 100%;}
+      div[data-testid="stFileUploader"]{position:fixed;bottom:1rem;right:4.5rem;}
+      div[data-testid="stFileUploader"] section{padding:0;}
+      div[data-testid="stFileUploader"] button{background:#444;border:1px solid #fff;color:#fff;}
+      div[data-testid="stFileUploader"] button span{visibility:hidden;}
+      div[data-testid="stFileUploader"] button:after{content:'\1F4F7';font-size:1.2rem;}
       div[data-testid="stRadio"] > label {display: none;}
       div[data-testid="stRadio"] div[role="radiogroup"] {display: flex; gap: 0.5rem; justify-content: center;}
       div[data-testid="stRadio"] [data-baseweb="radio"] {background: #1e1e1e; border-radius: 20px; padding: 0.2rem 0.8rem; border: 2px solid #03a9f4; color: #03a9f4; font-weight: bold;}
@@ -150,11 +164,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-for k in ("processing", "idle_ready", "messages", "input_mode"):
+for k in ("processing", "idle_ready", "messages", "input_mode", "pending_image"):
     if k == "messages":
         st.session_state.setdefault(k, [])
     elif k == "input_mode":
         st.session_state.setdefault(k, "text")
+    elif k == "pending_image":
+        st.session_state.setdefault(k, None)
     else:
         st.session_state.setdefault(k, False)
 
@@ -177,6 +193,9 @@ log_area = st.container()
 
 avatar_slot = st.empty()
 audio_slot  = st.empty()          # ← audio 用プレースホルダ
+image_slot  = st.empty()         # ← selected image preview
+if st.session_state.pending_image:
+    image_slot.image(st.session_state.pending_image, width=120)
 
 # ============================================================== #
 #                       メイン処理                               #
@@ -191,6 +210,16 @@ user_text = None
 if not st.session_state.processing:
     if st.session_state.input_mode == "text":
         user_text = st.chat_input("メッセージを入力")
+        uploaded = st.file_uploader(
+            "",
+            type=["png", "jpg", "jpeg", "webp"],
+            accept_multiple_files=False,
+            key="camera",
+            label_visibility="collapsed",
+        )
+        if uploaded:
+            st.session_state.pending_image = uploaded.getvalue()
+            image_slot.image(uploaded, width=120)
     else:
         audio_data = st.audio_input("🎤 ①マイクボタンで録音開始　②もう一度おして録音終了)")
         if audio_data:
@@ -224,7 +253,25 @@ if user_text and not st.session_state.processing:
     with st.spinner("💭 考え中…"):
         t0 = perf_counter()
         openai_messages = [{"role": "system", "content": system_msg}]
-        openai_messages.extend(st.session_state.messages)
+        for i, m in enumerate(st.session_state.messages):
+            if i == len(st.session_state.messages) - 1 and st.session_state.pending_image:
+                img_b64 = base64.b64encode(st.session_state.pending_image).decode()
+                openai_messages.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": m["content"]},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": "data:image/png;base64," + img_b64
+                                },
+                            },
+                        ],
+                    }
+                )
+            else:
+                openai_messages.append(m)
         reply = (
             openai.OpenAI(api_key=OPENAI_API_KEY)
             .chat.completions.create(model=MODEL_NAME, messages=openai_messages)
@@ -234,6 +281,8 @@ if user_text and not st.session_state.processing:
         t1 = perf_counter()
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
+        st.session_state.pending_image = None
+        image_slot.empty()
 
         voice_map = {
             "ja": "ja-JP-NanamiNeural",
