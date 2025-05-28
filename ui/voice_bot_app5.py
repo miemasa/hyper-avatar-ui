@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio, contextlib, io, os, subprocess, tempfile, threading, time, wave
 from pathlib import Path
 from time import perf_counter
-import base64
 
 import edge_tts
 import openai
@@ -127,11 +126,6 @@ lang_option = st.sidebar.selectbox(
     "🌐 言語 (auto)", ["auto", "ja", "en", "ko", "zh"], key="lang_option"
 )
 st.sidebar.image(AVATAR_IMG[model_name], width=140)
-st.sidebar.file_uploader(
-    "📷 画像を添付 (任意)",
-    type=["png", "jpg", "jpeg", "webp"],
-    key="image_file",
-)
 
 st.markdown(
     """
@@ -156,13 +150,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-for k in ("processing", "idle_ready", "messages", "input_mode", "image_file"):
+for k in ("processing", "idle_ready", "messages", "input_mode"):
     if k == "messages":
         st.session_state.setdefault(k, [])
     elif k == "input_mode":
         st.session_state.setdefault(k, "text")
-    elif k == "image_file":
-        st.session_state.setdefault(k, None)
     else:
         st.session_state.setdefault(k, False)
 
@@ -225,7 +217,6 @@ if not st.session_state.processing:
 if user_text and not st.session_state.processing:
     st.session_state.processing = True
     st.session_state.messages.append({"role": "user", "content": user_text})
-    image_file = st.session_state.get("image_file")
 
     target_lang = lang_option if lang_option != "auto" else "ja"
     system_msg  = build_system_prompt(model_name, target_lang, user_text)
@@ -234,20 +225,6 @@ if user_text and not st.session_state.processing:
         t0 = perf_counter()
         openai_messages = [{"role": "system", "content": system_msg}]
         openai_messages.extend(st.session_state.messages)
-        if image_file:
-            encoded = base64.b64encode(image_file.getvalue()).decode("utf-8")
-            openai_messages[-1] = {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": user_text},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{encoded}"
-                        },
-                    },
-                ],
-            }
         reply = (
             openai.OpenAI(api_key=OPENAI_API_KEY)
             .chat.completions.create(model=MODEL_NAME, messages=openai_messages)
@@ -255,7 +232,6 @@ if user_text and not st.session_state.processing:
             .message.content
         )
         t1 = perf_counter()
-        st.session_state.image_file = None
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
 
