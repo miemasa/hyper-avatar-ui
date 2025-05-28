@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio, contextlib, io, os, subprocess, tempfile, threading, time, wave
+import base64
 from pathlib import Path
 from time import perf_counter
 
@@ -140,7 +141,11 @@ st.markdown(
     <style>
       html, body, [class*='st-'] {font-family: 'Noto Sans JP', sans-serif;}
       .stApp {background: linear-gradient(135deg, #141E30 0%, #243B55 100%); color: #fff;}
-      .stChatInput {position: fixed; bottom: 1rem; width: 100%;}
+      .stChatInput {position: fixed; bottom: 2rem; width: 100%;}
+      div[data-testid="stFileUploader"]{position:fixed; bottom:2.5rem; right:4rem; width:2.5rem;}
+      div[data-testid="stFileUploader"] section{padding:0;}
+      div[data-testid="stFileUploader"] label{background:#03a9f4; color:#fff; border-radius:50%; width:2.5rem; height:2.5rem; display:flex; justify-content:center; align-items:center; cursor:pointer;}
+      div[data-testid="stFileUploader"] span{display:none;}
       div[data-testid="stRadio"] > label {display: none;}
       div[data-testid="stRadio"] div[role="radiogroup"] {display: flex; gap: 0.5rem; justify-content: center;}
       div[data-testid="stRadio"] [data-baseweb="radio"] {background: #1e1e1e; border-radius: 20px; padding: 0.2rem 0.8rem; border: 2px solid #03a9f4; color: #03a9f4; font-weight: bold;}
@@ -150,11 +155,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-for k in ("processing", "idle_ready", "messages", "input_mode"):
+for k in ("processing", "idle_ready", "messages", "input_mode", "selected_image"):
     if k == "messages":
         st.session_state.setdefault(k, [])
     elif k == "input_mode":
         st.session_state.setdefault(k, "text")
+    elif k == "selected_image":
+        st.session_state.setdefault(k, None)
     else:
         st.session_state.setdefault(k, False)
 
@@ -177,6 +184,13 @@ log_area = st.container()
 
 avatar_slot = st.empty()
 audio_slot  = st.empty()          # ← audio 用プレースホルダ
+img_slot    = st.empty()          # ← image preview
+
+upload = st.file_uploader("", type=["png", "jpg", "jpeg"], key="upload_img", label_visibility="collapsed")
+if upload:
+    st.session_state.selected_image = upload
+if st.session_state.selected_image:
+    img_slot.image(st.session_state.selected_image, width=160)
 
 # ============================================================== #
 #                       メイン処理                               #
@@ -186,6 +200,8 @@ for m in st.session_state.messages:
     avatar = AVATAR_IMG[model_name] if m["role"] == "assistant" else None
     with st.chat_message(m["role"], avatar=avatar):
         st.markdown(m["content"])
+        if m.get("image"):
+            st.image(m["image"], width=160)
 
 user_text = None
 if not st.session_state.processing:
@@ -216,7 +232,11 @@ if not st.session_state.processing:
 
 if user_text and not st.session_state.processing:
     st.session_state.processing = True
-    st.session_state.messages.append({"role": "user", "content": user_text})
+    if st.session_state.selected_image:
+        st.session_state.messages.append({"role": "user", "content": user_text, "image": st.session_state.selected_image.getvalue()})
+    else:
+        st.session_state.messages.append({"role": "user", "content": user_text})
+    st.session_state.selected_image = None
 
     target_lang = lang_option if lang_option != "auto" else "ja"
     system_msg  = build_system_prompt(model_name, target_lang, user_text)
@@ -224,7 +244,18 @@ if user_text and not st.session_state.processing:
     with st.spinner("💭 考え中…"):
         t0 = perf_counter()
         openai_messages = [{"role": "system", "content": system_msg}]
-        openai_messages.extend(st.session_state.messages)
+        for m in st.session_state.messages:
+            if m["role"] == "user" and m.get("image"):
+                img64 = base64.b64encode(m["image"]).decode()
+                openai_messages.append({
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": m["content"]},
+                        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img64}"}},
+                    ],
+                })
+            else:
+                openai_messages.append({"role": m["role"], "content": m["content"]})
         reply = (
             openai.OpenAI(api_key=OPENAI_API_KEY)
             .chat.completions.create(model=MODEL_NAME, messages=openai_messages)
