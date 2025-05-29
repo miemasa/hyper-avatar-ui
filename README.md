@@ -12,6 +12,12 @@ Windows and Linux:
 ```bash
 pip install -r requirements.txt
 
+# 新しい RAG 検索には以下も必要です
+pip install "unstructured[all-docs]" chromadb cohere
+
+# tesseract がデータファイルを見つけられない場合は環境変数を設定します
+export TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
+
 seedvc_service.py/convertエンド/transcribeポイントとオプションの API キー認証を備えた FastAPI サーバーを公開します。
 
 #  Seed-VC + Faster-Whisper FastAPI server  (API-KEY / resample fix)
@@ -42,20 +48,10 @@ def convert_voice(self, source, target, diffusion_steps=10, length_adjust=1.0,
 ...
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "...")
 ...
- VSTORE_PATH = {"aoki_model_v1": "hyponet_db", "sakaguchi_model_v1": "hyponet_db2"}
+VSTORE_PATH = {"aoki_model_v1": "hyponet_chroma", "sakaguchi_model_v1": "hyponet_chroma2"}
 
- @st.cache_resource
- def load_vectorstore(path: str):
-     with st.spinner(f"📚 {path} ロード中…"):
-         return FAISS.load_local(
-             path,
-             OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY),
-             allow_dangerous_deserialization=True,
-         )
-
- def get_vectorstore(model_name: str) -> FAISS:
-     path = VSTORE_PATH.get(model_name, "hyponet_db")
-     return load_vectorstore(path)
+retriever = get_retriever(model_name)
+docs = retriever.invoke(user_q)
 
 同じファイルの後半では、アプリはオーディオを Seed-VC API に投稿し、変換された音声を再生します。
 
@@ -100,9 +96,15 @@ langchain-openai
 faiss-cpu
 pypdf>=3.9
 
-補助スクリプトにはmk-faiss.py と mk-faiss2.py があり、前者は docs/ の PDF を
+補助スクリプトには mk-faiss.py と mk-faiss2.py があり、前者は docs/ の PDF を
 hyponet_db に、後者は docs2/ の PDF を hyponet_db2 にインデックスして RAG 用
-ベクトルストアを生成します。
+ベクトルストアを生成します。OCR 版の mk-faiss3.py は引数で入力フォルダと出力
+ディレクトリを指定できます。
+
+```bash
+python mk-faiss3.py --src docs --dest hyponet_chroma      # 青木所長用
+python mk-faiss3.py --src docs2 --dest hyponet_chroma2    # 坂口さん用
+```
 
 docs = []
 for pdf_path in glob.glob("docs/*.pdf"):
