@@ -15,8 +15,9 @@ import edge_tts
 import openai
 import requests
 import streamlit as st
+from langchain_community.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
 from config import OPENAI_API_KEY, SEEDVC_API_KEY, API_HOST
-from utils.vector import get_retriever
 
 # ---------------------- 基本設定 --------------------------------
 st.set_page_config(page_title="HYPER AVATAR", page_icon="🎤", layout="centered")
@@ -47,6 +48,24 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ---------------------- RAG ベクターストア -----------------------
+@st.cache_resource
+def load_vectorstore(path: str):
+    """Load FAISS vector store with a visible spinner and cache."""
+    with st.spinner(f"📚 {path} ロード中…"):
+        return FAISS.load_local(
+            path,
+            OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY),
+            allow_dangerous_deserialization=True,
+        )
+
+VSTORE_PATH = {
+    "aoki_model_v1": "hyponet_db",
+    "sakaguchi_model_v1": "hyponet_db2",
+}
+
+def get_vectorstore(model_name: str) -> FAISS:
+    path = VSTORE_PATH.get(model_name, "hyponet_db")
+    return load_vectorstore(path)
 
 # ---------------------- キャラ設定 -------------------------------
 PROMPT_MAP = {
@@ -79,8 +98,8 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
         or PROMPT_MAP.get(lang, {}).get("_default")
         or PROMPT_MAP["ja"]["_default"]
     )
-    retriever = get_retriever(model_name)
-    docs = retriever.invoke(user_q)
+    vect = get_vectorstore(model_name)
+    docs = vect.max_marginal_relevance_search(user_q, k=8, lambda_mult=0.5)
     context = "\n\n".join(d.page_content for d in docs)
 
     # ★ 研究所の固定文は削除し、プレーンな参照指示だけにする
