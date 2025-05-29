@@ -18,6 +18,7 @@ import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from config import OPENAI_API_KEY, SEEDVC_API_KEY, API_HOST
+from utils.vector import get_retriever
 
 # ---------------------- 基本設定 --------------------------------
 st.set_page_config(page_title="HYPER AVATAR", page_icon="🎤", layout="centered")
@@ -98,8 +99,8 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
         or PROMPT_MAP.get(lang, {}).get("_default")
         or PROMPT_MAP["ja"]["_default"]
     )
-    vect = get_vectorstore(model_name)
-    docs = vect.max_marginal_relevance_search(user_q, k=8, lambda_mult=0.5)
+    retriever = get_retriever(model_name)
+    docs = retriever.invoke(user_q)
     context = "\n\n".join(d.page_content for d in docs)
 
     # ★ 研究所の固定文は削除し、プレーンな参照指示だけにする

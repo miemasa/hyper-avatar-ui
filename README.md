@@ -12,6 +12,12 @@ Windows and Linux:
 ```bash
 pip install -r requirements.txt
 
+# 新しい RAG 検索には以下も必要です
+pip install "unstructured[all-docs]" chromadb cohere
+
+# tesseract がデータファイルを見つけられない場合は環境変数を設定します
+export TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
+
 seedvc_service.py/convertエンド/transcribeポイントとオプションの API キー認証を備えた FastAPI サーバーを公開します。
 
 #  Seed-VC + Faster-Whisper FastAPI server  (API-KEY / resample fix)
