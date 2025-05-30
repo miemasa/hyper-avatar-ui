@@ -165,6 +165,8 @@ for k in ("processing", "idle_ready", "messages", "input_mode"):
     else:
         st.session_state.setdefault(k, False)
 
+st.session_state.setdefault("pending_voice", None)
+
 if "prev_model_name" not in st.session_state:
     st.session_state.prev_model_name = model_name
 elif st.session_state.prev_model_name != model_name:
@@ -193,6 +195,58 @@ for m in st.session_state.messages:
     avatar = AVATAR_IMG[model_name] if m["role"] == "assistant" else None
     with st.chat_message(m["role"], avatar=avatar):
         st.markdown(m["content"])
+
+if st.session_state.pending_voice:
+    pv = st.session_state.pending_voice
+    reply = pv["reply"]
+    target_lang = pv["target_lang"]
+    pv_model = pv.get("model_name", model_name)
+    with st.spinner("🔊 音声合成中…"):
+        voice_map = {
+            "ja": "ja-JP-NanamiNeural",
+            "en": "en-US-JennyNeural",
+            "ko": "ko-KR-SunHiNeural",
+            "zh": "zh-CN-XiaoxiaoNeural",
+        }
+        voice = voice_map.get(target_lang, "en-US-JennyNeural")
+        tmp_ogg = Path(tempfile.gettempdir()) / "edge_tts.ogg"
+        asyncio.run(edge_tts.Communicate(reply, voice).save(tmp_ogg))
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", tmp_ogg, "-ac", "1", "-ar", "24000", RAW_WAV],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+
+        r = requests.post(
+            f"{API_HOST}/convert",
+            headers=auth_headers,
+            files={"src": ("voice.wav", open(RAW_WAV, "rb"), "audio/wav")},
+            data={"model": pv_model},
+            timeout=120,
+        )
+        if r.status_code != 200 or not r.headers.get("content-type", "").startswith("audio"):
+            st.error(f"Seed-VC エラー ({r.status_code})\n{r.text[:300]}")
+            st.session_state.processing = False
+            st.session_state.pending_voice = None
+            st.stop()
+        wav_bytes = r.content
+
+    with contextlib.closing(wave.open(io.BytesIO(wav_bytes))) as wf:
+        duration = wf.getnframes() / wf.getframerate() + 0.2
+
+    avatar_slot.image(GIF_TALK[pv_model], use_container_width=True)
+    audio_slot.audio(io.BytesIO(wav_bytes), format="audio/wav", autoplay=True)
+    st.components.v1.html(
+        "<script>window.scrollTo({top:0,behavior:'smooth'});</script>",
+        height=0,
+    )
+
+    def mark_idle():
+        time.sleep(duration)
+        st.session_state.idle_ready = True
+    threading.Thread(target=mark_idle, daemon=True).start()
+
+    st.session_state.pending_voice = None
+    st.session_state.processing = False
 
 user_text = None
 #uploaded_image = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"], key="image")
@@ -255,57 +309,13 @@ if user_text and not st.session_state.processing:
         t1 = perf_counter()
 
         st.session_state.messages.append({"role": "assistant", "content": reply})
-
-        voice_map = {
-            "ja": "ja-JP-NanamiNeural",
-            "en": "en-US-JennyNeural",
-            "ko": "ko-KR-SunHiNeural",
-            "zh": "zh-CN-XiaoxiaoNeural",
+        st.session_state.pending_voice = {
+            "reply": reply,
+            "target_lang": target_lang,
+            "model_name": model_name,
         }
-        voice   = voice_map.get(target_lang, "en-US-JennyNeural")
-        tmp_ogg = Path(tempfile.gettempdir()) / "edge_tts.ogg"
-        asyncio.run(edge_tts.Communicate(reply, voice).save(tmp_ogg))
-        subprocess.run(
-            ["ffmpeg", "-y", "-i", tmp_ogg, "-ac", "1", "-ar", "24000", RAW_WAV],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        t2 = perf_counter()
-
-        r = requests.post(
-            f"{API_HOST}/convert",
-            headers=auth_headers,
-            files={"src": ("voice.wav", open(RAW_WAV, "rb"), "audio/wav")},
-            data={"model": model_name},
-            timeout=120,
-        )
-        if r.status_code != 200 or not r.headers.get("content-type", "").startswith("audio"):
-            st.error(f"Seed-VC エラー ({r.status_code})\n{r.text[:300]}")
-            st.session_state.processing = False
-            st.stop()
-
-        wav_bytes = r.content
-        t3 = perf_counter()
-
-    with contextlib.closing(wave.open(io.BytesIO(wav_bytes))) as wf:
-        duration = wf.getnframes() / wf.getframerate() + 0.2
-
-    avatar_slot.image(GIF_TALK[model_name], use_container_width=True)
-    audio_slot.audio(io.BytesIO(wav_bytes), format="audio/wav", autoplay=True)
-    st.components.v1.html(
-        "<script>window.scrollTo({top:0,behavior:'smooth'});</script>",
-        height=0,
-    )
-
-    def mark_idle():
-        time.sleep(duration)
-        st.session_state.idle_ready = True
-    threading.Thread(target=mark_idle, daemon=True).start()
-
-#    log_area.info(
-#        f"⏱️ 処理時間 (秒): {{'LLM': round(t1-t0,3), 'TTS': round(t2-t1,3), 'VC': round(t3-t2,3), 'total': round(t3-t0,3)}}"
-#    )
-
-    st.session_state.processing = False
+        _rerun()
+    st.stop()
 
 # ---------------------- idle 描画 -------------------------------
 if st.session_state.idle_ready:
