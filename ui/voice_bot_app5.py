@@ -106,7 +106,7 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
     # ★ 研究所の固定文は削除し、プレーンな参照指示だけにする
     return f"""{base}
 
-以下の参考情報を《》で引用しながら答えてください。
+以下の参考情報を参照したうえで答えてください。
 
 参考情報:
 {context}"""
@@ -189,7 +189,7 @@ for m in st.session_state.messages:
         st.markdown(m["content"])
 
 user_text = None
-uploaded_image = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"], key="image")
+#uploaded_image = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"], key="image")
 if not st.session_state.processing:
     if st.session_state.input_mode == "text":
         user_text = st.chat_input("メッセージを入力")
@@ -220,13 +220,6 @@ if user_text and not st.session_state.processing:
     st.session_state.processing = True
     image_b64 = None
     mime_type = None
-    if uploaded_image:
-        asset_dir = Path("assets")
-        asset_dir.mkdir(exist_ok=True)
-        img_path = asset_dir / f"upload_{int(time.time())}_{uploaded_image.name}"
-        img_path.write_bytes(uploaded_image.getbuffer())
-        image_b64 = base64.b64encode(uploaded_image.getbuffer()).decode()
-        mime_type, _ = mimetypes.guess_type(img_path.name)
     st.session_state.messages.append({"role": "user", "content": user_text})
 
     target_lang = lang_option if lang_option != "auto" else "ja"
