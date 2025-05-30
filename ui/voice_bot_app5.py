@@ -141,7 +141,21 @@ st.markdown(
     <style>
       html, body, [class*='st-'] {font-family: 'Noto Sans JP', sans-serif;}
       .stApp {background: linear-gradient(135deg, #141E30 0%, #243B55 100%); color: #fff;}
-      .stChatInput {position: fixed; bottom: 1rem; width: 100%;}
+      .stChatInput {
+        position: fixed;
+        bottom: 1rem;
+        left: 0;
+        right: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      div[data-testid="stFileUploader"] > label {display: none;}
+      div[data-testid="stFileUploader"] {
+        position: fixed;
+        bottom: 5rem;
+        right: 1rem;
+        z-index: 1000;
+      }
       div[data-testid="stRadio"] > label {display: none;}
       div[data-testid="stRadio"] div[role="radiogroup"] {display: flex; gap: 0.5rem; justify-content: center;}
       div[data-testid="stRadio"] [data-baseweb="radio"] {background: #1e1e1e; border-radius: 20px; padding: 0.2rem 0.8rem; border: 2px solid #03a9f4; color: #03a9f4; font-weight: bold;}
@@ -189,10 +203,16 @@ for m in st.session_state.messages:
         st.markdown(m["content"])
 
 user_text = None
-uploaded_image = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"], key="image")
+uploaded_image = None
 if not st.session_state.processing:
     if st.session_state.input_mode == "text":
         user_text = st.chat_input("メッセージを入力")
+        uploaded_image = st.file_uploader(
+            "画像をアップロード",
+            type=["png", "jpg", "jpeg"],
+            key="image",
+            label_visibility="collapsed",
+        )
     else:
         audio_data = st.audio_input("🎤 ①マイクボタンで録音開始　②もう一度おして録音終了)")
         if audio_data:
