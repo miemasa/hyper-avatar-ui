@@ -141,7 +141,13 @@ st.markdown(
     <style>
       html, body, [class*='st-'] {font-family: 'Noto Sans JP', sans-serif;}
       .stApp {background: linear-gradient(135deg, #141E30 0%, #243B55 100%); color: #fff;}
-      .stChatInput {position: fixed; bottom: 1rem; width: 100%;}
+      .stChatInput {
+        position: fixed;
+        bottom: 1rem;
+        left: 0;
+        right: 0;
+        margin: 0 1rem;
+      }
       div[data-testid="stRadio"] > label {display: none;}
       div[data-testid="stRadio"] div[role="radiogroup"] {display: flex; gap: 0.5rem; justify-content: center;}
       div[data-testid="stRadio"] [data-baseweb="radio"] {background: #1e1e1e; border-radius: 20px; padding: 0.2rem 0.8rem; border: 2px solid #03a9f4; color: #03a9f4; font-weight: bold;}
