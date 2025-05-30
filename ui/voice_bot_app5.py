@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio, contextlib, io, os, subprocess, tempfile, threading, time, wave
+import base64, mimetypes
 from pathlib import Path
 from time import perf_counter
 
@@ -188,6 +189,7 @@ for m in st.session_state.messages:
         st.markdown(m["content"])
 
 user_text = None
+uploaded_image = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"], key="image")
 if not st.session_state.processing:
     if st.session_state.input_mode == "text":
         user_text = st.chat_input("メッセージを入力")
@@ -216,6 +218,15 @@ if not st.session_state.processing:
 
 if user_text and not st.session_state.processing:
     st.session_state.processing = True
+    image_b64 = None
+    mime_type = None
+    if uploaded_image:
+        asset_dir = Path("assets")
+        asset_dir.mkdir(exist_ok=True)
+        img_path = asset_dir / f"upload_{int(time.time())}_{uploaded_image.name}"
+        img_path.write_bytes(uploaded_image.getbuffer())
+        image_b64 = base64.b64encode(uploaded_image.getbuffer()).decode()
+        mime_type, _ = mimetypes.guess_type(img_path.name)
     st.session_state.messages.append({"role": "user", "content": user_text})
 
     target_lang = lang_option if lang_option != "auto" else "ja"
@@ -225,6 +236,17 @@ if user_text and not st.session_state.processing:
         t0 = perf_counter()
         openai_messages = [{"role": "system", "content": system_msg}]
         openai_messages.extend(st.session_state.messages)
+        if image_b64 and mime_type:
+            openai_messages[-1] = {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_text},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime_type};base64,{image_b64}"},
+                    },
+                ],
+            }
         reply = (
             openai.OpenAI(api_key=OPENAI_API_KEY)
             .chat.completions.create(model=MODEL_NAME, messages=openai_messages)

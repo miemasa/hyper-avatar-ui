@@ -133,3 +133,6 @@ ui/voice_bot_app5.pyAPI および ChatGPT と対話するStreamlit インター�
 Python 依存関係を設定するための環境仕様。
 
 これは、新しい貢献者にとってコードベースを探索するための出発点となるはずです。にapi/README.mdは詳細な使用方法とトレーニング手順が含まれており、UIフォルダには音声変換機能をWebアプリに統合する方法が示されています。
+## Image Upload with GPT-4o
+
+`ui/voice_bot_app5.py` は画像アップロードをサポートします。アップロードされた画像は `assets/` に保存され、Base64 形式で OpenAI GPT‑4o モデルに送信されます。画像はテキスト入力とともにリクエストに含まれるため、追加の API キーは不要です。
