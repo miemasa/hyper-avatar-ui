@@ -19,6 +19,7 @@ import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from config import OPENAI_API_KEY, SEEDVC_API_KEY, API_HOST
+import uuid
 
 # ---------------------- 基本設定 --------------------------------
 st.set_page_config(page_title="HYPER AVATAR", page_icon="🎤", layout="centered")
@@ -113,12 +114,6 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
 
 
 
-# --- 録音終了後の処理 ----------------------------
-def after_recorded():
-    """Clear recorded audio on the next run."""
-    st.session_state.clear_mic = True
-    st.session_state["processing"] = False
-    st.toast("🎙 録音をクリアしました")
 
 # ◇ API キーヘッダをまとめて用意
 auth_headers = {"X-API-KEY": SEEDVC_API_KEY} if SEEDVC_API_KEY else {}
@@ -175,9 +170,11 @@ for k in ("processing", "idle_ready", "messages", "input_mode"):
 
 st.session_state.setdefault("pending_voice", None)
 st.session_state.setdefault("clear_mic", False)
+st.session_state.setdefault("mic_key", f"mic-{uuid.uuid4()}")
 if st.session_state.clear_mic:
     st.session_state.clear_mic = False
-    st.session_state["mic"] = None
+    st.session_state.pop("mic", None)
+    st.session_state.mic_key = f"mic-{uuid.uuid4()}"
 
 if "prev_model_name" not in st.session_state:
     st.session_state.prev_model_name = model_name
@@ -266,12 +263,22 @@ if not st.session_state.processing:
     if st.session_state.input_mode == "text":
         user_text = st.chat_input("メッセージを入力")
     else:
+        if "mic_key" not in st.session_state:
+            st.session_state.mic_key = f"mic-{uuid.uuid4()}"
+
         audio_data = st.audio_input(
-            "🎤 ①マイクボタンで録音開始　②もう一度おして録音終了)", key="mic"
+            "🎤 ①マイクボタンで録音開始　②もう一度おして録音終了)", key=st.session_state.mic_key
         )
+
+        def clear_recording():
+            st.session_state.pop("mic", None)
+            st.session_state.mic_key = f"mic-{uuid.uuid4()}"
+            st.session_state.processing = False
+            st.experimental_rerun()
+
         if st.session_state.get("mic") is not None:
             st.audio(st.session_state.mic)
-            st.button("録音クリア", on_click=after_recorded)
+            st.button("録音クリア", on_click=clear_recording)
         if audio_data:
             st.session_state.processing = True
             t0 = perf_counter()
