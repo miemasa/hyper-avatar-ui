@@ -115,7 +115,8 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
 
 # --- 録音終了後の処理 ----------------------------
 def after_recorded():
-    st.session_state["mic"] = None        # ← ここで安全にリセット
+    """Clear recorded audio on the next run."""
+    st.session_state.clear_mic = True
     st.session_state["processing"] = False
     st.toast("🎙 録音をクリアしました")
 
@@ -173,6 +174,10 @@ for k in ("processing", "idle_ready", "messages", "input_mode"):
         st.session_state.setdefault(k, False)
 
 st.session_state.setdefault("pending_voice", None)
+st.session_state.setdefault("clear_mic", False)
+if st.session_state.clear_mic:
+    st.session_state.clear_mic = False
+    st.session_state["mic"] = None
 
 if "prev_model_name" not in st.session_state:
     st.session_state.prev_model_name = model_name
@@ -285,8 +290,8 @@ if not st.session_state.processing:
                 st.session_state.processing = False
                 st.stop()
             log_area.info("🎙 録音完了")
-            # Clear recorded audio to avoid repeated transcription on rerun
-            st.session_state["mic"] = None
+            # Flag to reset audio widget on the next run
+            st.session_state.clear_mic = True
             t2 = perf_counter()
             st.session_state.processing = False
 
