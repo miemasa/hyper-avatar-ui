@@ -254,7 +254,9 @@ if not st.session_state.processing:
     if st.session_state.input_mode == "text":
         user_text = st.chat_input("メッセージを入力")
     else:
-        audio_data = st.audio_input("🎤 ①マイクボタンで録音開始　②もう一度おして録音終了)")
+        audio_data = st.audio_input(
+            "🎤 ①マイクボタンで録音開始　②もう一度おして録音終了)", key="mic"
+        )
         if audio_data:
             st.session_state.processing = True
             t0 = perf_counter()
@@ -273,6 +275,8 @@ if not st.session_state.processing:
                 st.session_state.processing = False
                 st.stop()
             log_area.info("🎙 録音完了")
+            # Clear recorded audio to avoid repeated transcription on rerun
+            st.session_state["mic"] = None
             t2 = perf_counter()
             st.session_state.processing = False
 
