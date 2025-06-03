@@ -112,6 +112,13 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
 {context}"""
 
 
+
+# --- 録音終了後の処理 ----------------------------
+def after_recorded():
+    st.session_state["mic"] = None        # ← ここで安全にリセット
+    st.session_state["processing"] = False
+    st.toast("🎙 録音をクリアしました")
+
 # ◇ API キーヘッダをまとめて用意
 auth_headers = {"X-API-KEY": SEEDVC_API_KEY} if SEEDVC_API_KEY else {}
 
@@ -257,6 +264,9 @@ if not st.session_state.processing:
         audio_data = st.audio_input(
             "🎤 ①マイクボタンで録音開始　②もう一度おして録音終了)", key="mic"
         )
+        if st.session_state.get("mic") is not None:
+            st.audio(st.session_state.mic)
+            st.button("録音クリア", on_click=after_recorded)
         if audio_data:
             st.session_state.processing = True
             t0 = perf_counter()
