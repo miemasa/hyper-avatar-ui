@@ -34,20 +34,20 @@ def _rerun() -> None:
         st.experimental_rerun()
 
 # ---------------------- ログイン認証 ------------------------------
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+# if "authenticated" not in st.session_state:
+#     st.session_state.authenticated = False
 
-if not st.session_state.authenticated:
-    st.title("ログイン")
-    user_id = st.text_input("ID")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if user_id == "hyper" and password == "hyper":
-            st.session_state.authenticated = True
-            _rerun()
-        else:
-            st.error("ID またはパスワードが違います")
-    st.stop()
+# if not st.session_state.authenticated:
+#     st.title("ログイン")
+#     user_id = st.text_input("ID")
+#     password = st.text_input("Password", type="password")
+#     if st.button("Login"):
+#         if user_id == "hyper" and password == "hyper":
+#             st.session_state.authenticated = True
+#             _rerun()
+#         else:
+#             st.error("ID またはパスワードが違います")
+#     st.stop()
 
 # ---------------------- RAG ベクターストア -----------------------
 @st.cache_resource
@@ -120,9 +120,11 @@ auth_headers = {"X-API-KEY": SEEDVC_API_KEY} if SEEDVC_API_KEY else {}
 
 # ---------------------- UI --------------------------------------
 st.sidebar.header("設定")
+model_options = list(GIF_TALK.keys())
 model_name  = st.sidebar.selectbox(
     "🧑‍💼 誰と話したいですか？",
-    list(GIF_TALK.keys()),
+    model_options,
+    index=model_options.index("aoki_model_v1"),
     format_func=lambda x: DISPLAY_LABELS.get(x, x),
     key="model_name",
 )
