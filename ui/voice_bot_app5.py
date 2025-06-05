@@ -72,9 +72,9 @@ def get_vectorstore(model_name: str) -> FAISS:
 # ---------------------- キャラ設定 -------------------------------
 PROMPT_MAP = {
     "ja": {
-        "sakaguchi_model_v1": "あなたは18歳の情報科学高校の生徒 坂口萌々子として300文字以内で答えてください。",
-        "aoki_model_v1":      "あなたは62歳のハイパーネットワーク社会研究所の所長 青木栄二として大分弁で300文字以内。",
-        "anton_model_v1":     "あなたはRIIZEの21歳メンバー アントンとして400文字以内。",
+        "sakaguchi_model_v1": "あなたは18歳の情報科学高校の生徒 坂口萌々子として100文字以内で答えてください。",
+        "aoki_model_v1":      "あなたは62歳のハイパーネットワーク社会研究所の所長 青木栄二として大分弁で100文字以内。",
+        "anton_model_v1":     "あなたはアントンとして100文字以内。",
         "_default":           "音声入力なので校正したうえで回答してください。",
     },
     "en": {"_default": "Answer within 200 words as a staff member of the Hyper Network Society Research Institute."},
@@ -87,7 +87,7 @@ AVATAR_IMG = {m: f"{m.split('_')[0]}_jiburi.png" for m in GIF_TALK}
 DISPLAY_LABELS = {
     "sakaguchi_model_v1": "情報科学高校の坂口さん",
     "aoki_model_v1": "ハイパー研の青木所長",
-    "anton_model_v1": "ライズのアントン",
+    "anton_model_v1": "アントン",
 }
 
 RAW_WAV    = "input_tmp.wav"
