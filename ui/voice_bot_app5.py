@@ -120,9 +120,12 @@ auth_headers = {"X-API-KEY": SEEDVC_API_KEY} if SEEDVC_API_KEY else {}
 
 # ---------------------- UI --------------------------------------
 st.sidebar.header("設定")
-model_name  = st.sidebar.selectbox(
+_model_options = list(GIF_TALK.keys())
+_default_idx = _model_options.index("aoki_model_v1") if "aoki_model_v1" in _model_options else 0
+model_name = st.sidebar.selectbox(
     "🧑‍💼 誰と話したいですか？",
-    list(GIF_TALK.keys()),
+    _model_options,
+    index=_default_idx,
     format_func=lambda x: DISPLAY_LABELS.get(x, x),
     key="model_name",
 )
