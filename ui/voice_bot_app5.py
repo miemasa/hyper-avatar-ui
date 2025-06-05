@@ -16,6 +16,7 @@ import edge_tts
 import openai
 import requests
 import streamlit as st
+from urllib.parse import unquote
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from config import OPENAI_API_KEY, SEEDVC_API_KEY, API_HOST
@@ -89,6 +90,32 @@ DISPLAY_LABELS = {
     "aoki_model_v1": "ハイパー研の青木所長",
     "anton_model_v1": "ライズのアントン",
 }
+
+# ---------------------------------------------------------------
+#  クエリパラメータ処理
+#     ?init=メッセージ&model=aoki_model_v1&lang=ja
+# ---------------------------------------------------------------
+query = st.experimental_get_query_params()
+init_msg = unquote(query.get("init", [""])[0])
+forced_model = query.get("model", [None])[0]
+forced_lang = query.get("lang", [None])[0]
+
+# モデル名のエイリアスを解決
+model_alias = {
+    "aoki": "aoki_model_v1",
+    "sakaguchi": "sakaguchi_model_v1",
+    "anton": "anton_model_v1",
+}
+if forced_model in model_alias:
+    forced_model = model_alias[forced_model]
+
+if forced_model and forced_model in DISPLAY_LABELS:
+    st.session_state["model_name"] = forced_model
+    st.session_state["prev_model_name"] = forced_model
+
+if forced_lang:
+    st.session_state["lang_option"] = forced_lang
+
 
 RAW_WAV    = "input_tmp.wav"
 MODEL_NAME = "gpt-4o"
@@ -181,6 +208,11 @@ if "prev_model_name" not in st.session_state:
 elif st.session_state.prev_model_name != model_name:
     st.session_state.messages = []
     st.session_state.prev_model_name = model_name
+
+# 初期メッセージ注入（1回限り）
+if init_msg and "init_injected" not in st.session_state:
+    st.session_state.messages.append({"role": "user", "content": init_msg})
+    st.session_state.init_injected = True
 
 mode = st.radio(
     "入力モード",
