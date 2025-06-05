@@ -25,6 +25,29 @@ import uuid
 st.set_page_config(page_title="HYPER AVATAR", page_icon="🎤", layout="centered")
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
+# ---------------------- クエリパラメータ --------------------------
+qp = st.query_params
+init_param = qp.get("init") if qp else None
+model_param = qp.get("model") if qp else None
+lang_param = qp.get("lang") if qp else None
+
+MODEL_ALIAS = {
+    "aoki": "aoki_model_v1",
+    "sakaguchi": "sakaguchi_model_v1",
+    "anton": "anton_model_v1",
+}
+
+if model_param:
+    model_param = MODEL_ALIAS.get(model_param, model_param)
+    st.session_state.setdefault("model_name", model_param)
+
+if lang_param:
+    st.session_state.setdefault("lang_option", lang_param)
+
+if "init_prompt" not in st.session_state:
+    st.session_state["init_prompt"] = init_param
+    st.session_state["init_handled"] = False
+
 # ――― どこか最上部（import の直後など）に 1 回書く -------------
 def _rerun() -> None:
     """Streamlit 1.45 ～ 1.48 と 1.49 以降の差異を吸収するラッパー"""
@@ -303,6 +326,15 @@ if not st.session_state.processing:
             st.session_state.clear_mic = True
             t2 = perf_counter()
             st.session_state.processing = False
+
+if (
+    user_text is None
+    and not st.session_state.processing
+    and st.session_state.get("init_prompt")
+    and not st.session_state.get("init_handled")
+):
+    user_text = st.session_state["init_prompt"]
+    st.session_state["init_handled"] = True
 
 if user_text and not st.session_state.processing:
     st.session_state.processing = True
