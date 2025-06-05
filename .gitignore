@@ -24,3 +24,12 @@ hyponet_db2/
 *.swp
 
 .env
+
+# ----- local assets / heavy models -----
+Wav2Lip/
+hyponet_chroma2/
+
+# ----- Python build cache -----
+__pycache__/
+*.py[cod]
+
