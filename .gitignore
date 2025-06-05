@@ -24,3 +24,8 @@ hyponet_db2/
 *.swp
 
 .env
+
+__pycache__/
+Wav2Lip/
+hyponet_chroma2/
+

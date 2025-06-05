@@ -35,21 +35,21 @@ def _rerun() -> None:
         st.experimental_rerun()
 
 # ---------------------- ログイン認証 ------------------------------
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-if not st.session_state.authenticated:
-    st.title("ログイン")
-    user_id = st.text_input("ID")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if user_id == "hyper" and password == "hyper":
-            st.session_state.authenticated = True
-            _rerun()
-        else:
-            st.error("ID またはパスワードが違います")
-    st.stop()
-
+#if "authenticated" not in st.session_state:
+#    st.session_state.authenticated = False
+#
+#if not st.session_state.authenticated:
+#    st.title("ログイン")
+#    user_id = st.text_input("ID")
+#    password = st.text_input("Password", type="password")
+#    if st.button("Login"):
+#        if user_id == "hyper" and password == "hyper":
+#            st.session_state.authenticated = True
+#            _rerun()
+#        else:
+#            st.error("ID またはパスワードが違います")
+#    st.stop()
+#
 # ---------------------- RAG ベクターストア -----------------------
 @st.cache_resource
 def load_vectorstore(path: str):
@@ -73,12 +73,12 @@ def get_vectorstore(model_name: str) -> FAISS:
 # ---------------------- キャラ設定 -------------------------------
 PROMPT_MAP = {
     "ja": {
-        "sakaguchi_model_v1": "あなたは18歳の情報科学高校の生徒 坂口萌々子として300文字以内で答えてください。",
-        "aoki_model_v1":      "あなたは62歳のハイパーネットワーク社会研究所の所長 青木栄二として大分弁で300文字以内。",
-        "anton_model_v1":     "あなたはRIIZEの21歳メンバー アントンとして400文字以内。",
+        "sakaguchi_model_v1": "あなたは18歳の情報科学高校の生徒 坂口萌々子として200文字以内で答えてください。",
+        "aoki_model_v1":      "あなたは62歳のハイパーネットワーク社会研究所の所長 青木栄二として大分弁で200文字以内。",
+        "anton_model_v1":     "あなたは日本のアイドルであるアントンとして50文字以内。",
         "_default":           "音声入力なので校正したうえで回答してください。",
     },
-    "en": {"_default": "Answer within 200 words as a staff member of the Hyper Network Society Research Institute."},
+    "en": {"_default": "Answer within 100 words as a staff member of the Hyper Network Society Research Institute."},
 }
 GIF_TALK   = {m: f"{m.split('_')[0]}_talk.gif"   for m in PROMPT_MAP["ja"] if m != "_default"}
 IMG_IDLE   = {m: f"{m.split('_')[0]}_idle.png"   for m in GIF_TALK}
@@ -88,7 +88,7 @@ AVATAR_IMG = {m: f"{m.split('_')[0]}_jiburi.png" for m in GIF_TALK}
 DISPLAY_LABELS = {
     "sakaguchi_model_v1": "情報科学高校の坂口さん",
     "aoki_model_v1": "ハイパー研の青木所長",
-    "anton_model_v1": "ライズのアントン",
+    "anton_model_v1": "アントン",
 }
 
 # ---------------------------------------------------------------
