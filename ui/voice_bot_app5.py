@@ -213,6 +213,8 @@ elif st.session_state.prev_model_name != model_name:
 if init_msg and "init_injected" not in st.session_state:
     st.session_state.messages.append({"role": "user", "content": init_msg})
     st.session_state.init_injected = True
+    st.session_state.auto_start = init_msg
+    _rerun()
 
 mode = st.radio(
     "入力モード",
@@ -289,9 +291,10 @@ if st.session_state.pending_voice:
     st.session_state.pending_voice = None
     st.session_state.processing = False
 
-user_text = None
+# 自動開始用のメッセージがあれば取得
+user_text = st.session_state.pop("auto_start", None)
 #uploaded_image = st.file_uploader("画像をアップロード", type=["png", "jpg", "jpeg"], key="image")
-if not st.session_state.processing:
+if not st.session_state.processing and user_text is None:
     if st.session_state.input_mode == "text":
         user_text = st.chat_input("メッセージを入力")
     else:
