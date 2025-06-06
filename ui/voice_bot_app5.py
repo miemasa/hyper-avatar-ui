@@ -214,6 +214,7 @@ st.markdown(
         right: 0;
         margin: 0 1rem;
         width: calc(100% - 2rem);
+        z-index: 9999;
       }
       .stChatInput input, .stChatInput textarea {
         text-align: left;
