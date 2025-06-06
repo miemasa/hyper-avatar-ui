@@ -137,7 +137,13 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
 
 
 def choose_voice(text: str, preferred: str) -> str:
-    """Select Edge TTS voice. If a language is explicitly chosen, use it."""
+    """Select Edge TTS voice based on text content.
+
+    Even when a foreign language is manually selected, Edge-TTS fails if the
+    text contains characters the voice cannot handle (e.g. Japanese text with
+    an English voice).  To avoid ``NoAudioReceived`` errors, the language is
+    first detected from the text and that takes precedence.
+    """
     voice_map = {
         "ja": "ja-JP-NanamiNeural",
         "en": "en-US-JennyNeural",
@@ -145,18 +151,19 @@ def choose_voice(text: str, preferred: str) -> str:
         "zh": "zh-CN-XiaoxiaoNeural",
     }
 
-    # When user selects a language other than "auto", honor that choice
-    if preferred and preferred != "auto":
-        return voice_map.get(preferred, voice_map["en"])
-
-    # Automatic detection based on text content
+    # Prioritise language inferred from text to prevent mismatch errors
     if re.search(r"[\u3040-\u30ff]", text):
         return voice_map["ja"]
     if re.search(r"[\uac00-\ud7af]", text):
         return voice_map["ko"]
     if re.search(r"[\u4e00-\u9fff]", text):
         return voice_map["zh"]
-    return voice_map.get(preferred, voice_map["en"])
+
+    # Fallback to user selection or default English
+    if preferred and preferred != "auto":
+        return voice_map.get(preferred, voice_map["en"])
+
+    return voice_map["en"]
 
 
 
@@ -262,7 +269,12 @@ if st.session_state.pending_voice:
         voice = choose_voice(reply, target_lang)
         reply_clean = re.sub(r"\s+", " ", reply)
         tmp_ogg = Path(tempfile.gettempdir()) / "edge_tts.ogg"
-        asyncio.run(edge_tts.Communicate(reply_clean, voice).save(tmp_ogg))
+        try:
+            asyncio.run(edge_tts.Communicate(reply_clean, voice).save(tmp_ogg))
+        except edge_tts.exceptions.NoAudioReceived:
+            st.error("Edge-TTS で音声が生成できませんでした。テキストや言語設定を確認してください。")
+            st.session_state.pending_voice = None
+            st.stop()
         subprocess.run(
             ["ffmpeg", "-y", "-i", tmp_ogg, "-ac", "1", "-ar", "24000", RAW_WAV],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
