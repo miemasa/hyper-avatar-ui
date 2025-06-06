@@ -215,6 +215,13 @@ st.markdown(
         margin: 0 1rem;
         width: calc(100% - 2rem);
       }
+      .stChatInput input, .stChatInput textarea {
+        text-align: left;
+      }
+      .stChatInput input::placeholder,
+      .stChatInput textarea::placeholder {
+        text-align: left;
+      }
       [data-testid="stSidebar"][aria-expanded="true"] ~ div .stChatInput {
         left: calc(21rem);
         width: calc(100% - 21rem - 2rem);
