@@ -205,6 +205,15 @@ st.markdown(
         left: 0;
         right: 0;
         margin: 0 1rem;
+        width: calc(100% - 2rem);
+      }
+      [data-testid="stSidebar"][aria-expanded="true"] ~ div .stChatInput {
+        left: calc(21rem);
+        width: calc(100% - 21rem - 2rem);
+      }
+      [data-testid="stSidebar"][aria-expanded="false"] ~ div .stChatInput {
+        left: 0;
+        width: calc(100% - 2rem);
       }
       div[data-testid="stRadio"] > label {display: none;}
       div[data-testid="stRadio"] div[role="radiogroup"] {display: flex; gap: 0.5rem; justify-content: center;}
