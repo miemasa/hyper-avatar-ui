@@ -100,7 +100,9 @@ PROMPT_MAP = {
         "anton_model_v1":     "あなたはアンドーとして100文字以内。",
         "_default":           "音声入力なので校正したうえで回答してください。",
     },
-    "en": {"_default": "Answer within 200 words as a staff member of the Hyper Network Society Research Institute."},
+    "en": {"_default": "Answer in English within 200 words as a staff member of the Hyper Network Society Research Institute."},
+    "ko": {"_default": "하이퍼 네트워크 사회 연구소의 직원으로서 한국어로 200단어 이내로 답해주세요."},
+    "zh": {"_default": "作为超级网络社会研究所的工作人员，请用中文在200字以内回答。"},
 }
 GIF_TALK   = {m: f"{m.split('_')[0]}_talk.gif"   for m in PROMPT_MAP["ja"] if m != "_default"}
 IMG_IDLE   = {m: f"{m.split('_')[0]}_idle.png"   for m in GIF_TALK}
@@ -128,7 +130,16 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
     context = "\n\n".join(d.page_content for d in docs)
 
     # ★ 研究所の固定文は削除し、プレーンな参照指示だけにする
+    lang_instruct = {
+        "ja": "日本語で答えてください。",
+        "en": "Please answer in English.",
+        "ko": "한국어로 답해주세요.",
+        "zh": "请用中文回答。",
+    }.get(lang, "日本語で答えてください。")
+
     return f"""{base}
+
+{lang_instruct}
 
 以下の参考情報を参照したうえで答えてください。
 
@@ -137,12 +148,10 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
 
 
 def choose_voice(text: str, preferred: str) -> str:
-    """Select Edge TTS voice based on text content.
+    """Select Edge TTS voice based on the preferred language.
 
-    Even when a foreign language is manually selected, Edge-TTS fails if the
-    text contains characters the voice cannot handle (e.g. Japanese text with
-    an English voice).  To avoid ``NoAudioReceived`` errors, the language is
-    first detected from the text and that takes precedence.
+    The user-selected language takes priority.  Language detection from the
+    text is only used when the option is set to ``auto``.
     """
     voice_map = {
         "ja": "ja-JP-NanamiNeural",
@@ -151,17 +160,16 @@ def choose_voice(text: str, preferred: str) -> str:
         "zh": "zh-CN-XiaoxiaoNeural",
     }
 
-    # Prioritise language inferred from text to prevent mismatch errors
+    if preferred and preferred != "auto":
+        return voice_map.get(preferred, voice_map["en"])
+
+    # Detect language from the text when auto mode is selected
     if re.search(r"[\u3040-\u30ff]", text):
         return voice_map["ja"]
     if re.search(r"[\uac00-\ud7af]", text):
         return voice_map["ko"]
     if re.search(r"[\u4e00-\u9fff]", text):
         return voice_map["zh"]
-
-    # Fallback to user selection or default English
-    if preferred and preferred != "auto":
-        return voice_map.get(preferred, voice_map["en"])
 
     return voice_map["en"]
 
