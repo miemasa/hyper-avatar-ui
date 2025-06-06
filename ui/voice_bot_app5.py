@@ -137,25 +137,26 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
 
 
 def choose_voice(text: str, preferred: str) -> str:
-    """Select appropriate Edge TTS voice based on text and preferred language."""
+    """Select Edge TTS voice. If a language is explicitly chosen, use it."""
     voice_map = {
         "ja": "ja-JP-NanamiNeural",
         "en": "en-US-JennyNeural",
         "ko": "ko-KR-SunHiNeural",
         "zh": "zh-CN-XiaoxiaoNeural",
     }
-    if preferred in voice_map:
-        voice = voice_map[preferred]
-    else:
-        voice = voice_map["en"]
 
+    # When user selects a language other than "auto", honor that choice
+    if preferred and preferred != "auto":
+        return voice_map.get(preferred, voice_map["en"])
+
+    # Automatic detection based on text content
     if re.search(r"[\u3040-\u30ff]", text):
         return voice_map["ja"]
     if re.search(r"[\uac00-\ud7af]", text):
         return voice_map["ko"]
     if re.search(r"[\u4e00-\u9fff]", text):
         return voice_map["zh"]
-    return voice
+    return voice_map.get(preferred, voice_map["en"])
 
 
 
