@@ -127,6 +127,7 @@ print(f"✅ {len(chunks)} chunks indexed → hyponet_db2/")
 api/seedvc_service.pySeed-VC と Faster-Whisper を実行するFastAPI サーバー ( )。
 
 ui/voice_bot_app5.pyAPI および ChatGPT と対話するStreamlit インターフェース ( )。
+この UI では Edge-TTS を使用した音声合成が行われます。返信内容に応じて自動的に対応言語のボイスを選択するため、外国語を選択した場合でもアルファベット部分だけが読まれる問題を改善しました。
 
 でのモデルのトレーニングと評価のためのスクリプトと構成をサポートしますapi/。
 

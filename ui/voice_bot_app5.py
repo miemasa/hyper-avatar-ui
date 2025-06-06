@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import asyncio, contextlib, io, os, subprocess, tempfile, threading, time, wave
-import base64, mimetypes
+import base64, mimetypes, re
 from pathlib import Path
 from time import perf_counter
 
@@ -136,6 +136,28 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
 {context}"""
 
 
+def choose_voice(text: str, preferred: str) -> str:
+    """Select appropriate Edge TTS voice based on text and preferred language."""
+    voice_map = {
+        "ja": "ja-JP-NanamiNeural",
+        "en": "en-US-JennyNeural",
+        "ko": "ko-KR-SunHiNeural",
+        "zh": "zh-CN-XiaoxiaoNeural",
+    }
+    if preferred in voice_map:
+        voice = voice_map[preferred]
+    else:
+        voice = voice_map["en"]
+
+    if re.search(r"[\u3040-\u30ff]", text):
+        return voice_map["ja"]
+    if re.search(r"[\uac00-\ud7af]", text):
+        return voice_map["ko"]
+    if re.search(r"[\u4e00-\u9fff]", text):
+        return voice_map["zh"]
+    return voice
+
+
 
 
 # ◇ API キーヘッダをまとめて用意
@@ -236,15 +258,10 @@ if st.session_state.pending_voice:
     target_lang = pv["target_lang"]
     pv_model = pv.get("model_name", model_name)
     with st.spinner("🔊 音声合成中…"):
-        voice_map = {
-            "ja": "ja-JP-NanamiNeural",
-            "en": "en-US-JennyNeural",
-            "ko": "ko-KR-SunHiNeural",
-            "zh": "zh-CN-XiaoxiaoNeural",
-        }
-        voice = voice_map.get(target_lang, "en-US-JennyNeural")
+        voice = choose_voice(reply, target_lang)
+        reply_clean = re.sub(r"\s+", " ", reply)
         tmp_ogg = Path(tempfile.gettempdir()) / "edge_tts.ogg"
-        asyncio.run(edge_tts.Communicate(reply, voice).save(tmp_ogg))
+        asyncio.run(edge_tts.Communicate(reply_clean, voice).save(tmp_ogg))
         subprocess.run(
             ["ffmpeg", "-y", "-i", tmp_ogg, "-ac", "1", "-ar", "24000", RAW_WAV],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
