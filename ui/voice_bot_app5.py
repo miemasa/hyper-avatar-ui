@@ -115,6 +115,26 @@ DISPLAY_LABELS = {
     "anton_model_v1": "アンドー",
 }
 
+# Edge TTS voice options per language
+VOICE_CHOICES = {
+    "ja": {
+        "Nanami": "ja-JP-NanamiNeural",
+        "Mizuki": "ja-JP-MizukiNeural",
+    },
+    "en": {
+        "Jenny": "en-US-JennyNeural",
+        "Aria": "en-US-AriaNeural",
+    },
+    "ko": {
+        "SunHi": "ko-KR-SunHiNeural",
+        "InJoon": "ko-KR-InJoonNeural",
+    },
+    "zh": {
+        "Xiaoxiao": "zh-CN-XiaoxiaoNeural",
+        "Yunxi": "zh-CN-YunxiNeural",
+    },
+}
+
 RAW_WAV    = "input_tmp.wav"
 MODEL_NAME = "gpt-4o"
 
@@ -147,11 +167,12 @@ def build_system_prompt(model_name: str, lang: str, user_q: str) -> str:
 {context}"""
 
 
-def choose_voice(text: str, preferred: str) -> str:
-    """Select Edge TTS voice based on the preferred language.
+def choose_voice(text: str, preferred: str, override: str | None = None) -> str:
+    """Select Edge TTS voice.
 
-    The user-selected language takes priority.  Language detection from the
-    text is only used when the option is set to ``auto``.
+    ``override`` takes precedence when provided.  Otherwise the user-selected
+    language is used.  Language detection from ``text`` is performed only when
+    ``preferred`` is ``auto``.
     """
     voice_map = {
         "ja": "ja-JP-NanamiNeural",
@@ -159,6 +180,9 @@ def choose_voice(text: str, preferred: str) -> str:
         "ko": "ko-KR-SunHiNeural",
         "zh": "zh-CN-XiaoxiaoNeural",
     }
+
+    if override:
+        return override
 
     if preferred and preferred != "auto":
         return voice_map.get(preferred, voice_map["en"])
@@ -192,6 +216,15 @@ model_name  = st.sidebar.selectbox(
 lang_option = st.sidebar.selectbox(
     "🌐 言語 (auto)", ["auto", "ja", "en", "ko", "zh"], key="lang_option"
 )
+# ボイス選択（言語に応じて切り替え）
+voice_choices = VOICE_CHOICES.get(lang_option if lang_option != "auto" else "ja")
+voice_names = list(voice_choices.keys())
+voice_name = st.sidebar.selectbox(
+    "🗣️ ボイス",
+    voice_names,
+    key="voice_name",
+)
+st.session_state["voice_id"] = voice_choices[voice_name]
 st.sidebar.image(AVATAR_IMG[model_name], width=140)
 
 st.markdown(
@@ -251,6 +284,7 @@ for k in ("processing", "idle_ready", "messages", "input_mode"):
 st.session_state.setdefault("pending_voice", None)
 st.session_state.setdefault("clear_mic", False)
 st.session_state.setdefault("mic_key", f"mic-{uuid.uuid4()}")
+st.session_state.setdefault("voice_id", VOICE_CHOICES["ja"]["Nanami"])
 if st.session_state.clear_mic:
     st.session_state.clear_mic = False
     st.session_state.pop("mic", None)
@@ -291,7 +325,7 @@ if st.session_state.pending_voice:
     target_lang = pv["target_lang"]
     pv_model = pv.get("model_name", model_name)
     with st.spinner("🔊 音声合成中…"):
-        voice = choose_voice(reply, target_lang)
+        voice = choose_voice(reply, target_lang, st.session_state.get("voice_id"))
         reply_clean = re.sub(r"\s+", " ", reply)
         tmp_ogg = Path(tempfile.gettempdir()) / "edge_tts.ogg"
         try:
